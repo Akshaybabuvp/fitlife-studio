@@ -35,7 +35,11 @@ const schema = z.object({
 
   join_date: z.string().min(1, 'Join date is required'),
 
-  fee_amount: z.coerce.number().min(1, 'Fee amount is required'),
+  fee_amount: z.coerce
+    .number({
+      invalid_type_error: 'Fee amount must be a number',
+    })
+    .min(1, 'Fee amount is required'),
 
   payment_method: z.enum(['cash', 'gpay']).optional(),
 
@@ -45,6 +49,8 @@ const schema = z.object({
 
   notes: z.string().optional(),
 });
+
+type FormData = z.infer<typeof schema>;
 
 export default function AddMemberPage() {
   const router = useRouter();
@@ -66,12 +72,20 @@ export default function AddMemberPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm({
+  } = useForm<FormData>({
     resolver: zodResolver(schema),
 
     defaultValues: {
+      full_name: '',
+      phone: '',
+      address: '',
+      gender: undefined,
       join_date: today,
+      fee_amount: 0,
+      payment_method: undefined,
       expiry_date: nextMonth,
+      next_payment_date: '',
+      notes: '',
     },
   });
 
@@ -95,7 +109,7 @@ export default function AddMemberPage() {
     return data.publicUrl;
   };
 
-  const onSubmit = async (data: z.infer<typeof schema>) => {
+  const onSubmit = async (data: FormData) => {
     setLoading(true);
 
     try {
@@ -223,7 +237,7 @@ export default function AddMemberPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               <Field
                 label="Full Name"
-                error={errors.full_name?.message as string}
+                error={errors.full_name?.message}
                 required
               >
                 <InputWrapper icon={User}>
@@ -237,7 +251,7 @@ export default function AddMemberPage() {
 
               <Field
                 label="Phone Number"
-                error={errors.phone?.message as string}
+                error={errors.phone?.message}
                 required
               >
                 <InputWrapper icon={Phone}>
@@ -250,7 +264,7 @@ export default function AddMemberPage() {
               </Field>
             </div>
 
-            <Field label="Address" error={errors.address?.message as string}>
+            <Field label="Address" error={errors.address?.message}>
               <InputWrapper icon={MapPin}>
                 <input
                   {...register('address')}
@@ -260,7 +274,7 @@ export default function AddMemberPage() {
               </InputWrapper>
             </Field>
 
-            <Field label="Gender" error={errors.gender?.message as string}>
+            <Field label="Gender" error={errors.gender?.message}>
               <select
                 {...register('gender')}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all"
@@ -287,7 +301,7 @@ export default function AddMemberPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               <Field
                 label="Join Date"
-                error={errors.join_date?.message as string}
+                error={errors.join_date?.message}
                 required
               >
                 <InputWrapper icon={Calendar}>
@@ -303,7 +317,7 @@ export default function AddMemberPage() {
 
               <Field
                 label="Expiry Date"
-                error={errors.expiry_date?.message as string}
+                error={errors.expiry_date?.message}
                 required
               >
                 <InputWrapper icon={Calendar}>
@@ -319,7 +333,7 @@ export default function AddMemberPage() {
 
               <Field
                 label="Fee Amount (₹)"
-                error={errors.fee_amount?.message as string}
+                error={errors.fee_amount?.message}
                 required
               >
                 <InputWrapper icon={DollarSign}>
@@ -336,7 +350,7 @@ export default function AddMemberPage() {
 
               <Field
                 label="Payment Method"
-                error={errors.payment_method?.message as string}
+                error={errors.payment_method?.message}
               >
                 <InputWrapper icon={CreditCard}>
                   <select
@@ -361,7 +375,7 @@ export default function AddMemberPage() {
 
             <Field
               label="Next Payment Date"
-              error={errors.next_payment_date?.message as string}
+              error={errors.next_payment_date?.message}
             >
               <InputWrapper icon={Calendar}>
                 <input
@@ -381,7 +395,7 @@ export default function AddMemberPage() {
               Additional Notes
             </h2>
 
-            <Field label="Notes" error={errors.notes?.message as string}>
+            <Field label="Notes" error={errors.notes?.message}>
               <div className="relative">
                 <FileText className="absolute left-3 top-3 w-4 h-4 text-zinc-500" />
 
