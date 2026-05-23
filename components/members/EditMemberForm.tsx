@@ -18,7 +18,6 @@ import {
   Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/utils/cn';
@@ -27,24 +26,35 @@ import type { Member } from '@/types';
 
 const schema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
+
   phone: z.string().min(10, 'Enter a valid phone number').max(15),
+
   address: z.string().optional(),
+
   gender: z.enum(['male', 'female', 'other']).optional(),
+
   join_date: z.string().min(1, 'Join date is required'),
+
   fee_amount: z.coerce.number().min(1, 'Fee amount is required'),
+
   payment_method: z.enum(['cash', 'gpay']).optional(),
+
   expiry_date: z.string().min(1, 'Expiry date is required'),
+
   next_payment_date: z.string().optional(),
+
   notes: z.string().optional(),
 });
 
-type FormData = z.infer<typeof schema>;
-
 export default function EditMemberForm({ member }: { member: Member }) {
   const router = useRouter();
+
   const supabase = createClient();
+
   const [loading, setLoading] = useState(false);
+
   const [imageFile, setImageFile] = useState<File | null>(null);
+
   const [imagePreview, setImagePreview] = useState<string | null>(
     member.profile_image ?? null,
   );
@@ -53,8 +63,9 @@ export default function EditMemberForm({ member }: { member: Member }) {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormData>({
+  } = useForm({
     resolver: zodResolver(schema),
+
     defaultValues: {
       full_name: member.full_name,
       phone: member.phone,
@@ -71,18 +82,27 @@ export default function EditMemberForm({ member }: { member: Member }) {
 
   const uploadImage = async (): Promise<string | null> => {
     if (!imageFile) return member.profile_image;
+
     const ext = imageFile.name.split('.').pop();
+
     const path = `${member.id}.${ext}`;
+
     const { error } = await supabase.storage
       .from('member-images')
-      .upload(path, imageFile, { upsert: true });
+      .upload(path, imageFile, {
+        upsert: true,
+      });
+
     if (error) return member.profile_image;
+
     const { data } = supabase.storage.from('member-images').getPublicUrl(path);
+
     return data.publicUrl;
   };
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: z.infer<typeof schema>) => {
     setLoading(true);
+
     try {
       const imageUrl = await uploadImage();
 
@@ -106,24 +126,40 @@ export default function EditMemberForm({ member }: { member: Member }) {
       if (error) throw error;
 
       toast.success('Member updated successfully!');
+
       router.push(`/members/${member.id}`);
+
       router.refresh();
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update member');
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to update member';
+
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   };
 
   const fadeUp = (delay: number) => ({
-    initial: { opacity: 0, y: 16 },
-    animate: { opacity: 1, y: 0 },
-    transition: { delay, duration: 0.4, ease: 'easeOut' },
+    initial: {
+      opacity: 0,
+      y: 16,
+    },
+
+    animate: {
+      opacity: 1,
+      y: 0,
+    },
+
+    transition: {
+      delay,
+      duration: 0.4,
+      ease: 'easeOut' as const,
+    },
   });
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
-      {/* Header */}
       <motion.div {...fadeUp(0)} className="flex items-center gap-4">
         <Link
           href={`/members/${member.id}`}
@@ -131,14 +167,15 @@ export default function EditMemberForm({ member }: { member: Member }) {
         >
           <ArrowLeft className="w-4 h-4 text-zinc-400" />
         </Link>
+
         <div>
           <h1 className="text-xl font-bold text-white">Edit Member</h1>
+
           <p className="text-zinc-500 text-sm">{member.full_name}</p>
         </div>
       </motion.div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Image Upload */}
         <motion.div {...fadeUp(0.05)}>
           <ImageUpload
             preview={imagePreview}
@@ -153,7 +190,6 @@ export default function EditMemberForm({ member }: { member: Member }) {
           />
         </motion.div>
 
-        {/* Personal Info */}
         <motion.div
           {...fadeUp(0.1)}
           className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-6 space-y-4"
@@ -163,7 +199,11 @@ export default function EditMemberForm({ member }: { member: Member }) {
           </h2>
 
           <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Full Name" error={errors.full_name?.message} required>
+            <Field
+              label="Full Name"
+              error={errors.full_name?.message as string}
+              required
+            >
               <InputWrapper icon={User}>
                 <input
                   {...register('full_name')}
@@ -173,7 +213,11 @@ export default function EditMemberForm({ member }: { member: Member }) {
               </InputWrapper>
             </Field>
 
-            <Field label="Phone Number" error={errors.phone?.message} required>
+            <Field
+              label="Phone Number"
+              error={errors.phone?.message as string}
+              required
+            >
               <InputWrapper icon={Phone}>
                 <input
                   {...register('phone')}
@@ -184,7 +228,7 @@ export default function EditMemberForm({ member }: { member: Member }) {
             </Field>
           </div>
 
-          <Field label="Address" error={errors.address?.message}>
+          <Field label="Address" error={errors.address?.message as string}>
             <InputWrapper icon={MapPin}>
               <input
                 {...register('address')}
@@ -194,20 +238,22 @@ export default function EditMemberForm({ member }: { member: Member }) {
             </InputWrapper>
           </Field>
 
-          <Field label="Gender" error={errors.gender?.message}>
+          <Field label="Gender" error={errors.gender?.message as string}>
             <select
               {...register('gender')}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all"
             >
               <option value="">Select gender</option>
+
               <option value="male">Male</option>
+
               <option value="female">Female</option>
+
               <option value="other">Other</option>
             </select>
           </Field>
         </motion.div>
 
-        {/* Fee Info */}
         <motion.div
           {...fadeUp(0.15)}
           className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-6 space-y-4"
@@ -217,7 +263,11 @@ export default function EditMemberForm({ member }: { member: Member }) {
           </h2>
 
           <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Join Date" error={errors.join_date?.message} required>
+            <Field
+              label="Join Date"
+              error={errors.join_date?.message as string}
+              required
+            >
               <InputWrapper icon={Calendar}>
                 <input
                   type="date"
@@ -231,7 +281,7 @@ export default function EditMemberForm({ member }: { member: Member }) {
 
             <Field
               label="Expiry Date"
-              error={errors.expiry_date?.message}
+              error={errors.expiry_date?.message as string}
               required
             >
               <InputWrapper icon={Calendar}>
@@ -247,13 +297,15 @@ export default function EditMemberForm({ member }: { member: Member }) {
 
             <Field
               label="Fee Amount (₹)"
-              error={errors.fee_amount?.message}
+              error={errors.fee_amount?.message as string}
               required
             >
               <InputWrapper icon={DollarSign}>
                 <input
                   type="number"
-                  {...register('fee_amount')}
+                  {...register('fee_amount', {
+                    valueAsNumber: true,
+                  })}
                   placeholder="Amount"
                   className={inputClass(!!errors.fee_amount)}
                 />
@@ -262,7 +314,7 @@ export default function EditMemberForm({ member }: { member: Member }) {
 
             <Field
               label="Payment Method"
-              error={errors.payment_method?.message}
+              error={errors.payment_method?.message as string}
             >
               <InputWrapper icon={CreditCard}>
                 <select
@@ -272,9 +324,11 @@ export default function EditMemberForm({ member }: { member: Member }) {
                   <option value="" className="bg-zinc-800">
                     Select method
                   </option>
+
                   <option value="cash" className="bg-zinc-800">
                     Cash
                   </option>
+
                   <option value="gpay" className="bg-zinc-800">
                     GPay
                   </option>
@@ -285,7 +339,7 @@ export default function EditMemberForm({ member }: { member: Member }) {
 
           <Field
             label="Next Payment Date"
-            error={errors.next_payment_date?.message}
+            error={errors.next_payment_date?.message as string}
           >
             <InputWrapper icon={Calendar}>
               <input
@@ -297,7 +351,6 @@ export default function EditMemberForm({ member }: { member: Member }) {
           </Field>
         </motion.div>
 
-        {/* Notes */}
         <motion.div
           {...fadeUp(0.2)}
           className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sm:p-6 space-y-4"
@@ -305,9 +358,11 @@ export default function EditMemberForm({ member }: { member: Member }) {
           <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">
             Notes
           </h2>
-          <Field label="Notes" error={errors.notes?.message}>
+
+          <Field label="Notes" error={errors.notes?.message as string}>
             <div className="relative">
               <FileText className="absolute left-3 top-3 w-4 h-4 text-zinc-500" />
+
               <textarea
                 {...register('notes')}
                 placeholder="Any notes..."
@@ -318,7 +373,6 @@ export default function EditMemberForm({ member }: { member: Member }) {
           </Field>
         </motion.div>
 
-        {/* Submit */}
         <motion.div {...fadeUp(0.25)} className="flex gap-3 pb-6">
           <Link
             href={`/members/${member.id}`}
@@ -326,9 +380,14 @@ export default function EditMemberForm({ member }: { member: Member }) {
           >
             Cancel
           </Link>
+
           <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
+            whileHover={{
+              scale: 1.01,
+            }}
+            whileTap={{
+              scale: 0.99,
+            }}
             type="submit"
             disabled={loading}
             className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 disabled:opacity-60 text-white font-semibold py-3.5 rounded-2xl transition-all shadow-lg shadow-red-600/20 text-sm"
@@ -351,8 +410,6 @@ export default function EditMemberForm({ member }: { member: Member }) {
   );
 }
 
-// ── Helpers ──
-
 function Field({
   label,
   error,
@@ -368,9 +425,12 @@ function Field({
     <div className="space-y-1.5">
       <label className="block text-sm font-medium text-zinc-300">
         {label}
+
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
+
       {children}
+
       {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
     </div>
   );
@@ -386,6 +446,7 @@ function InputWrapper({
   return (
     <div className="relative flex items-center bg-zinc-800 border border-zinc-700 rounded-xl focus-within:border-red-500 focus-within:ring-1 focus-within:ring-red-500 transition-all">
       <Icon className="absolute left-3 w-4 h-4 text-zinc-500 pointer-events-none" />
+
       <div className="w-full pl-10 pr-4 py-3">{children}</div>
     </div>
   );
